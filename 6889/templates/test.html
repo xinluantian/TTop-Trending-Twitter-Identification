@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="https://cdn.jsdelivr.net/npm/displacy@1.1.0/displacy.min.js"></script>
+</head>
+<body>
+	<div id="demo"></div>
+	<script type="text/javascript">
+		const displacy = new displaCy('http://localhost:5001', {
+    container: '#demo',
+    format: 'spacy',
+    distance: 300,
+    offsetX: 100
+});
+		displacy.parse('This is a sentence.', 'en', {
+    collapsePunct: false,
+    collapsePhrase: false,
+    color: '#ffffff',
+    bg: '#000000'
+});
+	</script>
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    	<meta charset="utf-8"/>
+    	<title>Top Trending Twitter Hashtags</title>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.js'></script>
+    	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    	<script src="static/displacy-ent.js"></script>
+    	<style type="text/css">
+    		.entities {
+			    line-height: 2;
+			}
+
+			[data-entity] {
+			    padding: 0.25em 0.35em;
+			     margin: 0px 0.25em;
+			     line-height: 1;
+			     display: inline-block;
+			     border-radius: 0.25em;
+			     border: 1px solid;
+			}
+
+			[data-entity]::after {
+			    box-sizing: border-box;
+			    content: attr(data-entity);
+			    font-size: 0.6em;
+			    line-height: 1;
+			    padding: 0.35em;
+			    border-radius: 0.35em;
+			    text-transform: uppercase;
+			    display: inline-block;
+			    vertical-align: middle;
+			    margin: 0px 0px 0.1rem 0.5rem;
+			}
+
+			[data-entity][data-entity="person"] {
+			    background: rgba(166, 226, 45, 0.2);
+			    border-color: rgb(166, 226, 45);
+			}
+
+			[data-entity][data-entity="person"]::after {
+			    background: rgb(166, 226, 45);
+			}
+
+			[data-entity][data-entity="org"] {
+			    background: rgba(67, 198, 252, 0.2);
+			    border-color: rgb(67, 198, 252);
+			}
+
+			[data-entity][data-entity="org"]::after {
+			    background: rgb(67, 198, 252);
+			}
+
+			[data-entity][data-entity="date"] {
+			    background: rgba(47, 187, 171, 0.2);
+			    border-color: rgb(47, 187, 171);
+			}
+
+			[data-entity][data-entity="date"]::after {
+			    background: rgb(47, 187, 171);
+			}
+    	</style>
+    	
+	</head>
+	<body>
+		<div id="demo"></div>
+        <h2 style="text-align: center">Top Trending Twitter Hashtags</h2>
+        <div style="width:700px;height=500px;margin:0 auto">
+           	<canvas id="chart"></canvas>
+       	</div>
+        <div id="outer" style="height:250px;width:700px;overflow:auto;border:1px solid 1px solid rgba(255, 206, 86, 0.2);background-color: rgba(255, 206, 86, 0.2);margin:0 auto;padding: 10px;">
+        </div>
+            <script>
+			   var ctx = document.getElementById("chart");
+			   var sentence=document.getElementById("sentence");
+			   var outdiv=document.getElementById("outer");
+			   
+			   var myChart = new Chart(ctx, {
+			        type: 'bar',
+			        data: {
+			            labels: [{% for item in labels %}
+			                    "{{item}}",
+			                    {% endfor %}],
+			            datasets: [{
+			                label: '# of Mentions',
+			                data: [{% for item in values %}
+			                         {{item}},
+			                        {% endfor %}],
+			                backgroundColor: [
+			                    'rgba(255, 99, 132, 0.2)',
+			                    'rgba(54, 162, 235, 0.2)',
+			                    'rgba(255, 206, 86, 0.2)',
+			                  'rgba(75, 192, 192, 0.2)',
+			                    'rgba(153, 102, 255, 0.2)',
+			                    'rgba(255, 159, 64, 0.2)',
+			                    'rgba(255, 99, 132, 0.2)',
+			                    'rgba(54, 162, 235, 0.2)',
+			                    'rgba(255, 206, 86, 0.2)',
+			                    'rgba(75, 192, 192, 0.2)',
+			                    'rgba(153, 102, 255, 0.2)'
+			                ],
+			                borderColor: [
+			                    'rgba(255,99,132,1)',
+			                    'rgba(54, 162, 235, 1)',
+			                    'rgba(255, 206, 86, 1)',
+			                    'rgba(75, 192, 192, 1)',
+			                    'rgba(153, 102, 255, 1)',
+			                    'rgba(255, 159, 64, 1)',
+			                    'rgba(255,99,132,1)',
+			                    'rgba(54, 162, 235, 1)',
+			                    'rgba(255, 206, 86, 1)',
+			                    'rgba(75, 192, 192, 1)',
+			                    'rgba(153, 102, 255, 1)'
+			                ],
+			                borderWidth: 1
+			            }]
+			        },
+			        options: {
+			            scales: {
+			                yAxes: [{
+			                    ticks: {
+			                        beginAtZero:true
+			                    }
+			                }]
+			            }
+			        }
+			   });
+			   var src_Labels = [];
+			   var src_Data = [];
+			   var src_Sentence=[];
+			   var retrieved_data=[];
+			   var ents = ['person', 'org', 'gpe', 'loc', 'product'];
+			   setInterval(function(){
+			        $.getJSON('/refreshData', {
+			        }, function(data) {
+			            src_Labels = data.sLabel;
+			            src_Data = data.sData;
+			            src_Sentence=data.sSentences;
+			        });
+			        myChart.data.labels = src_Labels;
+			        myChart.data.datasets[0].data = src_Data;
+			        myChart.update();
+			        src_Sentence.forEach((s)=>{
+			        	$.ajax({
+			        		type:"POST",
+			        		url: '/ent',
+						    data: JSON.stringify({'text':s, 'model':'en_core_web_sm'}),
+						    contentType: "application/json",
+						    dataType: 'json',
+						    success: function(data) {
+						    	var input = {text:s, data:data};
+						    	console.log(input);
+						    	retrieved_data.push(input);
+						    }
+			        	});
+			        });
+			        retrieved_data.forEach((data, index)=>{
+			        	var newDiv = document.createElement("div");
+				    	newDiv.id = 'a' + index;
+				    	outdiv.appendChild(newDiv);
+				    	const displacy = new displaCyENT('', {
+						    container: '#a' + index
+						});
+						displacy.render(data.text, data.data, ents);
+			        });
+			    },2000);
+			</script>
+	</body>
+</html>
